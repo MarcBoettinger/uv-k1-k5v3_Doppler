@@ -1,0 +1,137 @@
+Archive member included to satisfy reference by file (symbol)
+
+C:/Users/Marc/Downloads/tools/arm-gnu/bin/../lib/gcc/arm-none-eabi/15.3.1/thumb/v6-m/nofp\libgcc.a(_thumb1_case_uqi.o)
+                              C:\Users\Marc\AppData\Local\Temp\ccWYa6hB.o (__gnu_thumb1_case_uqi)
+C:/Users/Marc/Downloads/tools/arm-gnu/bin/../lib/gcc/arm-none-eabi/15.3.1/thumb/v6-m/nofp\libgcc.a(_thumb1_case_shi.o)
+                              C:\Users\Marc\AppData\Local\Temp\ccWYa6hB.o (__gnu_thumb1_case_shi)
+
+Discarded input sections
+
+ .text          0x00000000        0x0 C:\Users\Marc\AppData\Local\Temp\ccWYa6hB.o
+ .data          0x00000000        0x0 C:\Users\Marc\AppData\Local\Temp\ccWYa6hB.o
+ .bss           0x00000000        0x0 C:\Users\Marc\AppData\Local\Temp\ccWYa6hB.o
+ .comment       0x00000000       0x47 C:\Users\Marc\AppData\Local\Temp\ccWYa6hB.o
+ .data          0x00000000        0x0 C:/Users/Marc/Downloads/tools/arm-gnu/bin/../lib/gcc/arm-none-eabi/15.3.1/thumb/v6-m/nofp\libgcc.a(_thumb1_case_uqi.o)
+ .bss           0x00000000        0x0 C:/Users/Marc/Downloads/tools/arm-gnu/bin/../lib/gcc/arm-none-eabi/15.3.1/thumb/v6-m/nofp\libgcc.a(_thumb1_case_uqi.o)
+ .data          0x00000000        0x0 C:/Users/Marc/Downloads/tools/arm-gnu/bin/../lib/gcc/arm-none-eabi/15.3.1/thumb/v6-m/nofp\libgcc.a(_thumb1_case_shi.o)
+ .bss           0x00000000        0x0 C:/Users/Marc/Downloads/tools/arm-gnu/bin/../lib/gcc/arm-none-eabi/15.3.1/thumb/v6-m/nofp\libgcc.a(_thumb1_case_shi.o)
+
+Memory Configuration
+
+Name             Origin             Length             Attributes
+APP              0x20000280         0x00001000         xrw
+*default*        0x00000000         0xffffffff
+
+Linker script and memory map
+
+                0x20000280                        APP_VMA = 0x20000280
+LOAD C:\Users\Marc\AppData\Local\Temp\ccWYa6hB.o
+LOAD C:/Users/Marc/Downloads/tools/arm-gnu/bin/../lib/gcc/arm-none-eabi/15.3.1/thumb/v6-m/nofp\libgcc.a
+                0x20000280                        APP_VMA = DEFINED (APP_VMA)?APP_VMA:0x20000280
+                0x00001000                        APP_LENGTH = 0x1000
+
+.app            0x20000280      0xf54
+ *(.text.entry)
+ .text.entry    0x20000280      0x64c C:\Users\Marc\AppData\Local\Temp\ccWYa6hB.o
+                0x20000280                app_main
+ *(.text .text.*)
+ .text.dc_delta
+                0x200008cc       0x60 C:\Users\Marc\AppData\Local\Temp\ccWYa6hB.o
+ .text.dc_hms   0x2000092c       0x40 C:\Users\Marc\AppData\Local\Temp\ccWYa6hB.o
+ .text.live     0x2000096c       0x3c C:\Users\Marc\AppData\Local\Temp\ccWYa6hB.o
+ .text.tune     0x200009a8       0x2c C:\Users\Marc\AppData\Local\Temp\ccWYa6hB.o
+ .text.blip     0x200009d4       0x34 C:\Users\Marc\AppData\Local\Temp\ccWYa6hB.o
+ .text.cat      0x20000a08       0x10 C:\Users\Marc\AppData\Local\Temp\ccWYa6hB.o
+ .text.dec      0x20000a18       0x2c C:\Users\Marc\AppData\Local\Temp\ccWYa6hB.o
+ .text.sgn      0x20000a44       0x1c C:\Users\Marc\AppData\Local\Temp\ccWYa6hB.o
+ .text.mhz      0x20000a60       0x3c C:\Users\Marc\AppData\Local\Temp\ccWYa6hB.o
+ .text.line     0x20000a9c       0x1c C:\Users\Marc\AppData\Local\Temp\ccWYa6hB.o
+ .text.hms      0x20000ab8       0x54 C:\Users\Marc\AppData\Local\Temp\ccWYa6hB.o
+ .text.dc_typed.constprop.0
+                0x20000b0c       0x24 C:\Users\Marc\AppData\Local\Temp\ccWYa6hB.o
+ .text.dc_set.constprop.0
+                0x20000b30       0x54 C:\Users\Marc\AppData\Local\Temp\ccWYa6hB.o
+ .text.dc_follow.constprop.0
+                0x20000b84       0x54 C:\Users\Marc\AppData\Local\Temp\ccWYa6hB.o
+ .text.retune   0x20000bd8       0x4c C:\Users\Marc\AppData\Local\Temp\ccWYa6hB.o
+ .text.pass_update
+                0x20000c24      0x148 C:\Users\Marc\AppData\Local\Temp\ccWYa6hB.o
+ .text.act      0x20000d6c      0x324 C:\Users\Marc\AppData\Local\Temp\ccWYa6hB.o
+ .text.__aeabi_uidivmod
+                0x20001090       0x14 C:\Users\Marc\AppData\Local\Temp\ccWYa6hB.o
+                0x20001090                __aeabi_uidivmod
+                0x20001090                __aeabi_uidiv
+ .text.__aeabi_idivmod
+                0x200010a4       0x14 C:\Users\Marc\AppData\Local\Temp\ccWYa6hB.o
+                0x200010a4                __aeabi_idivmod
+                0x200010a4                __aeabi_idiv
+ .text          0x200010b8       0x14 C:/Users/Marc/Downloads/tools/arm-gnu/bin/../lib/gcc/arm-none-eabi/15.3.1/thumb/v6-m/nofp\libgcc.a(_thumb1_case_uqi.o)
+                0x200010b8                __gnu_thumb1_case_uqi
+ .text          0x200010cc       0x14 C:/Users/Marc/Downloads/tools/arm-gnu/bin/../lib/gcc/arm-none-eabi/15.3.1/thumb/v6-m/nofp\libgcc.a(_thumb1_case_shi.o)
+                0x200010cc                __gnu_thumb1_case_shi
+ *(.rodata .rodata.*)
+ .rodata.entry.str1.1
+                0x200010e0       0x6a C:\Users\Marc\AppData\Local\Temp\ccWYa6hB.o
+                                 0x79 (size before relaxing)
+ .rodata.lab.1  0x2000114a       0x1e C:\Users\Marc\AppData\Local\Temp\ccWYa6hB.o
+ .rodata.cq.0   0x20001168       0x12 C:\Users\Marc\AppData\Local\Temp\ccWYa6hB.o
+ .rodata.dc_step
+                0x2000117a        0x8 C:\Users\Marc\AppData\Local\Temp\ccWYa6hB.o
+                0x20001184                        . = ALIGN (0x4)
+ *fill*         0x20001182        0x2 
+ *(.data .data.*)
+                0x20001184                        . = ALIGN (0x4)
+                0x20001184                        __app_bss_start = .
+ *(.bss .bss.* COMMON)
+ .bss.g         0x20001184       0x50 C:\Users\Marc\AppData\Local\Temp\ccWYa6hB.o
+                0x200011d4                        . = ALIGN (0x4)
+                0x200011d4                        __app_bss_end = .
+                0x200011d4                        __app_end = .
+                0x00000001                        ASSERT ((__app_end <= (APP_VMA + APP_LENGTH)), Doppler overlay app overflows the 4 KiB overlay)
+
+.glue_7         0x200011d4        0x0
+ .glue_7        0x200011d4        0x0 linker stubs
+
+.glue_7t        0x200011d4        0x0
+ .glue_7t       0x200011d4        0x0 linker stubs
+
+.vfp11_veneer   0x200011d4        0x0
+ .vfp11_veneer  0x200011d4        0x0 linker stubs
+
+.v4_bx          0x200011d4        0x0
+ .v4_bx         0x200011d4        0x0 linker stubs
+
+.iplt           0x200011d4        0x0
+ .iplt          0x200011d4        0x0 C:\Users\Marc\AppData\Local\Temp\ccWYa6hB.o
+
+.igot.plt       0x200011d4        0x0
+ .igot.plt      0x200011d4        0x0 C:\Users\Marc\AppData\Local\Temp\ccWYa6hB.o
+
+.rel.dyn        0x200011d4        0x0
+ .rel.iplt      0x200011d4        0x0 C:\Users\Marc\AppData\Local\Temp\ccWYa6hB.o
+
+/DISCARD/
+ *(.ARM.exidx*)
+ *(.ARM.extab*)
+ *(.eh_frame*)
+ *(.comment)
+ *(.note.*)
+OUTPUT(doppler.elf elf32-littlearm)
+LOAD linker stubs
+
+.ARM.attributes
+                0x00000000       0x2c
+ .ARM.attributes
+                0x00000000       0x2c C:\Users\Marc\AppData\Local\Temp\ccWYa6hB.o
+ .ARM.attributes
+                0x0000002c       0x1e C:/Users/Marc/Downloads/tools/arm-gnu/bin/../lib/gcc/arm-none-eabi/15.3.1/thumb/v6-m/nofp\libgcc.a(_thumb1_case_uqi.o)
+ .ARM.attributes
+                0x0000004a       0x1e C:/Users/Marc/Downloads/tools/arm-gnu/bin/../lib/gcc/arm-none-eabi/15.3.1/thumb/v6-m/nofp\libgcc.a(_thumb1_case_shi.o)
+
+.debug_line_str
+                0x00000000       0xe7
+ .debug_line_str
+                0x00000000       0xe7 C:/Users/Marc/Downloads/tools/arm-gnu/bin/../lib/gcc/arm-none-eabi/15.3.1/thumb/v6-m/nofp\libgcc.a(_thumb1_case_uqi.o)
+ .debug_line_str
+                0x000000e7        0x0 C:/Users/Marc/Downloads/tools/arm-gnu/bin/../lib/gcc/arm-none-eabi/15.3.1/thumb/v6-m/nofp\libgcc.a(_thumb1_case_shi.o)
+                                 0xe7 (size before relaxing)
