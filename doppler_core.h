@@ -29,6 +29,7 @@ typedef struct {
     int32_t  adj;         /* pass mode: manual correction on top of the model, Hz */
     uint32_t riseS;       /* pass setup: seconds until rise            */
     uint16_t durS;        /* pass duration, s                          */
+    uint16_t alt;         /* satellite altitude, km (200..2000)        */
     int16_t  rit;         /* receiver incremental tuning, Hz           */
     uint8_t  mode, step, recede, unit_ms, en;
     uint8_t  emax, pf;    /* pass max elevation (deg), setup field 0..2 */
@@ -83,15 +84,20 @@ static uint32_t dc_isqrt(uint32_t n)
 
 /* Radial speed of the satellite at `ageMs` after rise, cm/s; *recede = 1 after the closest approach.
  *
+ * Altitude: the top speed falls about 1.24 m/s per km and the shape c grows about 0.077 % per km
+ * above 420 km (linear corrections to the 420 km fit: within ~230 m/s of the exact model for
+ * 350..1200 km, against up to 1.2 km/s if altitude were ignored).
+ *
  * Shape: v = V u / sqrt(u^2 + c^2), u = 0 at the closest approach, 1 at the horizon (the pass is
  * stretched to durS), V = 7300 m/s. c depends on the maximum elevation (about 0.80 at 10 deg down
  * to 0.176 at 90 deg) and was fitted to the exact circular-orbit geometry (420 km altitude, Earth
  * rotation ignored): within 86 m/s of that model for 10..90 deg. */
-static uint32_t dc_pass_vcms(uint8_t emax, uint32_t durS, uint32_t ageMs, uint8_t *recede)
+static uint32_t dc_pass_vcms(uint8_t emax, uint16_t alt, uint32_t durS, uint32_t ageMs, uint8_t *recede)
 {
     static const uint8_t cq[18] = { 210,154,122,101,87,76,68,62,58,54,51,49,47,46,45,45,44,44 };   /* c * 256 for 10, 15, ... 90 deg */
     const uint32_t dur = durS * 10u, t = ageMs / 100u;            /* deciseconds */
     const uint32_t x = (2u * t > dur) ? 2u * t - dur : dur - 2u * t;
+    const int32_t dh = (int32_t)alt - 420;
     uint32_t u = x * 1024u / dur, c;
     uint8_t i, f;
     if (emax < 10u) emax = 10u;
@@ -101,7 +107,8 @@ static uint32_t dc_pass_vcms(uint8_t emax, uint32_t durS, uint32_t ageMs, uint8_
     i = (uint8_t)((emax - 10u) / 5u);
     f = (uint8_t)((emax - 10u) % 5u);
     c = ((uint32_t)cq[i] * (5u - f) + (uint32_t)cq[i + 1] * f) * 4u / 5u;   /* Q10 */
-    return 2920000u * u / dc_isqrt((u * u + c * c) << 4);       /* 7300 m/s = 730000 cm/s; isqrt is x4, u is Q10 */
+    c = c * (uint32_t)(1024 + dh * 79 / 100) >> 10;                         /* altitude: shape */
+    return (uint32_t)(2920000 - 496 * dh) * u / dc_isqrt((u * u + c * c) << 4);   /* 4 * (730000 - 124 dh) cm/s; isqrt is x4, u is Q10 */
 }
 
 /* Pass mode: bring the dial to model + manual correction (force = even for a small move). */
@@ -157,12 +164,14 @@ static uint8_t dc_commit(dop_t *s)
                 s->riseS = dc_hms(v);
             } else if (s->pf == 1) {
                 s->durS = (uint16_t)((v < 1u ? 1u : v) * 60u);
-            } else {
+            } else if (s->pf == 2) {
                 s->emax = (uint8_t)(v < 1u ? 1u : v > 90u ? 90u : v);
+            } else {
+                s->alt = (uint16_t)(v < 200u ? 200u : v > 2000u ? 2000u : v);
             }
         }
         s->en = 0;
-        if (++s->pf == 3u) {
+        if (++s->pf == 4u) {
             s->mode = DC_PASS;
             s->adj = 0;
             return R_DRAW | R_START;
@@ -196,7 +205,7 @@ static uint8_t dc_key(dop_t *s, uint8_t key, int8_t dir, uint8_t rep)
     const bool pass = s->mode == DC_PASS;
     if (!pass && s->mode != DC_RUN) {
         if (key <= 9u) {
-            if (s->en < (s->mode == DC_EDF ? 8u : s->mode == DC_EDV ? 5u : s->pf ? 2u : 6u))
+            if (s->en < (s->mode == DC_EDF ? 8u : s->mode == DC_EDV ? 5u : s->pf == 3 ? 4u : s->pf ? 2u : 6u))
                 s->ed[s->en++] = key;
             return R_DRAW;
         }

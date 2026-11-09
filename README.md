@@ -1,4 +1,4 @@
-# Doppler 0.2 (overlay app, F4HWN Labs ABI 1 / API 3)
+# Doppler 0.3 (overlay app, F4HWN Labs ABI 1 / API 3)
 
 Simulates and tracks the Doppler shift of a moving transmitter (ISS, aircraft)
 on a stationary receiver: `f = f0 (1 ± v/c)`. RX only: no transmit service is
@@ -10,12 +10,14 @@ path and filter stay as the loader set them); farther away the header shows `SIM
 
 ## Pass mode (automatic tracking)
 
-Take the three numbers from any pass predictor (time until rise, duration,
-maximum elevation), e.g. *rise in 5:20:45, 11 min, 35°*:
+Take the numbers from any pass predictor (time until rise, duration, maximum
+elevation) plus the satellite's altitude, e.g. *rise in 5:20:45, 11 min, 35°*, ISS:
 
-1. `4` opens PASS SETUP. Type `10500`, `MENU` (digits fill from the right: 1:05:00),
-   type `11`, `MENU`, type `35`, `MENU`. The countdown starts.
-2. The header counts down (`T-1:05:00`); the dial is already on the rise
+1. `4` opens PASS SETUP. Type `52045`, `MENU` (digits fill from the right: 5:20:45),
+   type `11`, `MENU`, type `35`, `MENU`, then the altitude in km (up to 4 digits,
+   200..2000) and `MENU`. For the ISS just press `MENU`: 420 km is the default.
+   The countdown starts.
+2. The header counts down (`T-5:20:45`); the dial is already on the rise
    frequency. Beeps at one minute before and at the rise.
 3. From the rise the velocity follows the pass: +7 km/s approaching, 0 at closest
    approach, −7 km/s receding. The dial re-centres by itself whenever it is 200 Hz
@@ -27,9 +29,11 @@ maximum elevation), e.g. *rise in 5:20:45, 11 min, 35°*:
 
 The clock runs only while the app is open and its accuracy over hours is unknown:
 start the countdown 10–15 minutes before the pass rather than hours ahead.
-The curve is a fit of the exact circular-orbit geometry (420 km): within about 90 m/s
-(45 Hz at 145.8 MHz, 136 Hz at 437.8 MHz) of it, Earth's rotation not modelled
-(up to ±150 Hz at 145.8 MHz).
+The curve is a fit of the exact circular-orbit geometry: within about 90 m/s (45 Hz at
+145.8 MHz, 136 Hz at 437.8 MHz) at 420 km. Other altitudes use linear corrections for
+the peak speed and the curve shape: within about 250 m/s (122 Hz at 145.8 MHz) for
+350..1200 km, where ignoring altitude would be off by up to 1.9 km/s. Earth's rotation
+is not modelled (up to ±150 Hz at 145.8 MHz); the arrows and `8` correct it by ear.
 
 ## Manual mode
 

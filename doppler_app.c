@@ -111,7 +111,7 @@ static void pass_update(uint32_t now)
         g.beeps |= 4u;
         blip(1500, 400);                             /* rise */
     }
-    s->vcms = dc_pass_vcms(s->emax, s->durS, g.age < 0 ? 0u : (uint32_t)g.age, &rec);
+    s->vcms = dc_pass_vcms(s->emax, s->alt, s->durS, g.age < 0 ? 0u : (uint32_t)g.age, &rec);
     s->recede = rec;
     if (dc_follow(s, 0) & R_TUNE) retune();
 }
@@ -167,17 +167,17 @@ static char *hms(char *o, uint32_t sec)
 
 static void render_setup(void)
 {
-    static const char lab[3][10] = { " RISE IN ", " DUR. MIN", " MAX ELEV" };
+    static const char lab[4][10] = { " RISE IN ", " DUR. MIN", " MAX ELEV", " ALT. KM " };
     char b[24], *o;
     uint8_t n;
     A->print_normal("PASS SETUP", 0, 0, 0);
-    for (n = 0; n < 3u; n++) {
+    for (n = 0; n < 4u; n++) {
         const bool typed = n == g.s.pf && g.s.en;
         const uint32_t v = dc_typed(&g.s);
         o = cat(b, lab[n]);
         b[0] = n == g.s.pf ? '>' : ' ';
         if (n == 0) o = hms(o, typed ? dc_hms(v) : g.s.riseS);
-        else o = dec(o, typed ? v : n == 1 ? (uint32_t)g.s.durS / 60u : g.s.emax, 2);
+        else o = dec(o, typed ? v : n == 1 ? (uint32_t)g.s.durS / 60u : n == 2 ? g.s.emax : g.s.alt, n == 3u ? 4 : 2);
         line(1u + n, b, o);
     }
     A->print_normal("MENU=ok EXIT=del", 0, 0, 6);
@@ -291,6 +291,7 @@ void app_main(const app_api_t *api)
     g.s.step = 2;
     g.s.durS = 600u;                                        /* pass setup defaults */
     g.s.emax = 40;
+    g.s.alt = 420;                                          /* ISS */
     g.ctrl = A->bk_read(REG_CTRL);
     g.prevKey = A->get_key();                               /* a key still held from the launcher is ignored */
     g.running = true;
