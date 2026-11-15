@@ -16,7 +16,6 @@
 #define DC_RIT_MAX   5000
 #define DC_M         139907u         /* round(4e9 / 29979245800 * 2^20) */
 
-#define DC_THR       200             /* pass mode: retune when the dial is this far off, Hz */
 
 enum { DC_RUN, DC_EDF, DC_EDV, DC_PSET, DC_PASS };           /* mode            */
 enum { R_TUNE = 1, R_DRAW = 2, R_EXIT = 4, R_START = 8,      /* key result bits */
@@ -32,11 +31,18 @@ typedef struct {
     uint16_t alt;         /* satellite altitude, km (200..2000)        */
     int16_t  rit;         /* receiver incremental tuning, Hz           */
     uint8_t  mode, step, recede, unit_ms, en;
+    uint8_t  tol;         /* tracking tolerance by modulation: 0 FM, 1 AM, 2 SSB/CW */
     uint8_t  emax, pf;    /* pass max elevation (deg), setup field 0..2 */
     uint8_t  ed[8];       /* typed digits                              */
 } dop_t;
 
-static const uint16_t dc_step[4] = { 1, 10, 100, 1000 };
+static const uint16_t dc_step[4] = { 10, 100, 500, 1000 };      /* dial steps, Hz (the BK4819 resolves 10 Hz) */
+
+/* Pass tracking tolerance, +/-Hz, by modulation (the same table as the firmware's Sat Track). Every retune
+ * relocks the PLL and drops the audio for a few ms, so a pass retunes only as often as the mode allows:
+ * the tolerance depends on the receive bandwidth, not on the carrier frequency (the carrier only sets how
+ * fast the shift moves, hence how often a retune is needed). */
+static const uint16_t dc_half[3] = { 500, 250, 30 };
 
 /* Doppler shift in Hz, signed (+ approaching). vcms <= 9 999 900. */
 static int32_t dc_delta(uint32_t f0, uint32_t vcms, uint8_t recede)
@@ -111,13 +117,22 @@ static uint32_t dc_pass_vcms(uint8_t emax, uint16_t alt, uint32_t durS, uint32_t
     return (uint32_t)(2920000 - 496 * dh) * u / dc_isqrt((u * u + c * c) << 4);   /* 4 * (730000 - 124 dh) cm/s; isqrt is x4, u is Q10 */
 }
 
-/* Pass mode: bring the dial to model + manual correction (force = even for a small move). */
+/* Pass mode: keep the dial within +/-dc_half of the model. The shift only falls during a pass, so a
+ * retune lands half a step BELOW the model: the error then sweeps from +half to -half before the
+ * next one (twice the spacing of tuning on the model for the same worst error). force = tune on the
+ * model itself (start, a correction from the arrow keys). */
 static uint8_t dc_follow(dop_t *s, uint8_t force)
 {
     const int32_t tgt = dc_clamp(dc_delta(s->f0, s->vcms, s->recede) + s->adj, DC_DIAL_MAX);
-    const uint32_t d = dc_abs(tgt - s->dial);
-    if (d == 0 || (!force && d < DC_THR)) return 0;
-    s->dial = tgt;
+    const int32_t h = dc_half[s->tol];
+    int32_t to = tgt;
+    if (!force) {
+        const int32_t e = tgt - s->dial;
+        if (e >= -h && e <= h) return 0;
+        to = dc_clamp(tgt - h, DC_DIAL_MAX);
+    }
+    if (to == s->dial) return 0;
+    s->dial = to;
     return R_TUNE | R_DRAW;
 }
 
@@ -230,6 +245,7 @@ static uint8_t dc_key(dop_t *s, uint8_t key, int8_t dir, uint8_t rep)
         s->adj = 0;                                      /* pass: clear correction and RIT */
         return dc_set(s, s->dial, 0) | dc_follow(s, 1) | R_DRAW;
     case 14: s->step = (s->step + 1) & 3; return R_DRAW;                  /* STAR */
+    case 5:  s->tol = s->tol >= 2u ? 0u : s->tol + 1u; return R_DRAW;     /* FM / AM / SSB tolerance */
     case 7:  s->unit_ms ^= 1; return R_DRAW;
     case 8:  return pass ? R_PEAK : 0;                                    /* now = closest approach */
     case 13:

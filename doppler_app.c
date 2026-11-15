@@ -15,7 +15,7 @@
 #include "doppler_core.h"
 
 #define TICK_MS      40u
-#define MUTE_MS      40u          /* simulated dropout after every retune     */
+#define PASS_MS      200u         /* pass tracking: model update interval     */
 #define REFRESH_MS   1000u
 #define LIVE_WINDOW  200000u      /* 10 Hz units = 2 MHz around the VFO       */
 #define SQL_DBM      (-115)       /* audio opens above this RSSI              */
@@ -27,11 +27,11 @@ static struct {
     dop_t s;
     const app_api_t *api;
     uint32_t vfo;                 /* VFO frequency at launch, 10 Hz units     */
-    uint32_t drawnAt, muteAt, riseAt, passAt;
+    uint32_t drawnAt, riseAt, passAt;
     int32_t age;                  /* ms since rise (negative while waiting)  */
-    uint16_t ctrl, repeatMs;      /* REG_30 as found, key repeat countdown    */
-    uint8_t prevKey, rep, beeps;
-    bool running, saver, dirty, muted, afOpen;
+    uint16_t repeatMs;            /* key repeat countdown                     */
+    uint8_t prevKey, rep, beeps, hold;
+    bool running, saver, dirty, afOpen;
 } g;
 #define A (g.api)
 
@@ -54,29 +54,27 @@ static bool live(void)
     return (f > g.vfo ? f - g.vfo : g.vfo - f) <= LIVE_WINDOW;
 }
 
-static void tune(uint32_t f)
+static void tune(uint32_t f)     /* same sequence as the firmware's sat_rx: REG_30 is read fresh each time */
 {
     void (*const w)(uint8_t, uint16_t) = A->bk_write;
+    const uint16_t ctrl = A->bk_read(REG_CTRL);
     w(REG_FREQ_LO, (uint16_t)f);
     w(REG_FREQ_HI, (uint16_t)(f >> 16));
     w(REG_CTRL, 0);
-    w(REG_CTRL, g.ctrl);
+    w(REG_CTRL, ctrl);
 }
 
-static void retune(void)         /* every real retune drops the audio for MUTE_MS */
+static void retune(void)         /* retune the PLL in place: audio stays open, like Sat Track */
 {
-    if (live()) {
-        A->set_af(APP_AF_MUTE);
-        g.afOpen = false;
-        tune(rx10());
-    }
-    g.muted = true;
-    g.muteAt = A->ticks_ms();
+    if (live()) tune(rx10());
 }
 
-static void audio(void)          /* open the speaker only on a real signal */
+static void audio(void)          /* open the speaker on a real signal; ride out a short RSSI dip */
 {
-    const bool open = !g.muted && live() && A->rssi_dbm() >= SQL_DBM;
+    bool open;
+    if (live() && A->rssi_dbm() >= SQL_DBM) g.hold = 5u;       /* 5 ticks = 200 ms */
+    else if (g.hold) g.hold--;
+    open = g.hold != 0;
     if (open != g.afOpen) {
         g.afOpen = open;
         A->set_af(open ? APP_AF_FM : APP_AF_MUTE);
@@ -99,9 +97,9 @@ static void pass_update(uint32_t now)
     dop_t *s = &g.s;
     uint8_t rec;
     g.age = (int32_t)(now - g.riseAt);
-    g.dirty = true;
     if (g.age >= (int32_t)((uint32_t)s->durS * 1000u)) {     /* pass over: stay where we are */
         s->mode = DC_RUN;
+        g.dirty = true;
         blip(600, 300);
         return;
     }
@@ -113,7 +111,7 @@ static void pass_update(uint32_t now)
     }
     s->vcms = dc_pass_vcms(s->emax, s->alt, s->durS, g.age < 0 ? 0u : (uint32_t)g.age, &rec);
     s->recede = rec;
-    if (dc_follow(s, 0) & R_TUNE) retune();
+    if (dc_follow(s, 0) & R_TUNE) { retune(); g.dirty = true; }
 }
 
 /* ---------------------------------------------------------------- render */
@@ -189,7 +187,7 @@ static void render(void)
     const int32_t delta = dc_delta(s->f0, s->vcms, s->recede);
     const int32_t err = s->dial + s->rit - delta;
     char b[24], *o;
-    uint8_t i, j, q = g.muted ? 0 : dc_quality(err);
+    uint8_t i, j, q = dc_quality(err);
 
     A->display_clear();
     if (s->mode == DC_PSET) { render_setup(); return; }
@@ -198,10 +196,10 @@ static void render(void)
         o = hms(cat(b, "T-"), (uint32_t)(-g.age + 999) / 1000u);
     } else if (s->mode == DC_PASS) {
         o = hms(cat(b, "P "), (uint32_t)g.age / 1000u);
-        o = cat(o, g.muted ? " LOST" : s->recede ? " RECD" : " APPR");
+        o = cat(o, s->recede ? " RECD" : " APPR");
     } else {
         o = cat(b, "DOPPLER ");
-        o = cat(o, g.muted ? "LOST" : !live() ? "SIM" : s->recede ? "RECD" : "APPR");
+        o = cat(o, !live() ? "SIM" : s->recede ? "RECD" : "APPR");
     }
     line(0, b, o);
     for (i = 0; i < 4u; i++) {                              /* signal bars, top right */
@@ -231,15 +229,16 @@ static void render(void)
 
     for (i = 4; i < 124u; i++) A->fb[5][i] = 0x18;           /* tuning meter: block = where the signal sits */
     A->fb[5][64] = 0x7E;
-    if (!g.muted) {
+    {
         int32_t e = -err / 50;
         if (e > 58) e = 58;
         if (e < -58) e = -58;
         for (j = (uint8_t)(62 + e); j <= (uint8_t)(66 + e); j++) A->fb[5][j] = 0xFF;
     }
 
-    o = cat(b, "S:");
-    o = cat(A->append_u32(o, dc_step[s->step]), "Hz R:");
+    o = cat(b, "S");                                        /* dial step, tracking tolerance, RIT */
+    o = cat(A->append_u32(o, dc_step[s->step]), " T");
+    o = cat(A->append_u32(o, dc_half[s->tol]), " R");
     line(6, b, sgn(o, s->rit));
 }
 
@@ -288,11 +287,15 @@ void app_main(const app_api_t *api)
     g.s.f0 = g.vfo * 10u;                                   /* start on the VFO; MENU edits it */
     g.s.vcms = 700000u;                                     /* 7 km/s, ISS-like */
     g.s.unit_ms = 1;
-    g.s.step = 2;
+    g.s.step = 1;                                           /* 100 Hz */
     g.s.durS = 600u;                                        /* pass setup defaults */
     g.s.emax = 40;
     g.s.alt = 420;                                          /* ISS */
-    g.ctrl = A->bk_read(REG_CTRL);
+    if (A->beam_get) {                                      /* tolerance from the VFO's modulation (NULL without BEAM) */
+        app_beam_channel_t ch;
+        A->beam_get(&ch);
+        g.s.tol = ch.modulation == 0 ? 0 : ch.modulation == 1 ? 1 : 2;
+    }
     g.prevKey = A->get_key();                               /* a key still held from the launcher is ignored */
     g.running = true;
     g.dirty = true;
@@ -305,8 +308,7 @@ void app_main(const app_api_t *api)
         poll_key();
         if (!g.running) break;
         now = A->ticks_ms();
-        if (g.muted && now - g.muteAt >= MUTE_MS) { g.muted = false; g.dirty = true; }
-        if (g.s.mode == DC_PASS && now - g.passAt >= 500u) { g.passAt = now; pass_update(now); }
+        if (g.s.mode == DC_PASS && now - g.passAt >= PASS_MS) { g.passAt = now; pass_update(now); }
         audio();
         if (!g.saver && (g.dirty || now - g.drawnAt >= REFRESH_MS)) {
             render();
